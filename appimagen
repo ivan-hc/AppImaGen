@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+
+APP=$1
+
+# CREATE A TEMPORARY DIRECTORY
+mkdir tmp;
+cd tmp;
+
+# DOWNLOADING THE DEPENDENCIES
+wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+wget https://raw.githubusercontent.com/ivan-hc/AM-application-manager/main/tools/pkg2appimage
+chmod a+x ./appimagetool ./pkg2appimage
+
+# CHECK THE NAME OF THE PREVIOUS "UBUNTU LTS" STILL SUPPORTED
+PREVIOUSLTS=$(wget -q https://releases.ubuntu.com/ -O - | grep class | grep LTS | grep -m2 href | tail -n1 | sed -n 's/.*href="\([^"]*\).*/\1/p' | rev| cut -c 2- | rev)
+
+# CREATING THE RECIPE OF THE APPIMAGE
+echo "app: $APP
+binpatch: true
+
+ingredients:
+  dist: $PREVIOUSLTS 
+  sources:
+    - deb http://archive.ubuntu.com/ubuntu/ $PREVIOUSLTS main universe restricted multiverse
+    - deb http://archive.ubuntu.com/ubuntu $PREVIOUSLTS-security main universe restricted multiverse
+    - deb http://archive.ubuntu.com/ubuntu/ $PREVIOUSLTS-updates main universe restricted multiverse
+  ppas:
+    - $2/$3
+  packages:
+    - $APP
+    - $4
+    - $5
+    - $6
+    - $7
+    - $8
+    - $9" >> recipe.yml
+
+# DOWNLOAD ALL THE NEEDED PACKAGES AND COMPILE THE APPDIR
+./pkg2appimage ./recipe.yml
+
+# ...DOWNLOADING LIBUNIONPRELOAD...
+wget https://github.com/project-portable/libunionpreload/releases/download/amd64/libunionpreload.so
+chmod a+x libunionpreload.so
+mv ./libunionpreload.so ./$APP/$APP.AppDir/
+
+# THIS IS THE PART RELATED TO THE APPRUN SCRIPT, I.E. THE ENGINE OF THE APPIMAGE---------------------------------------------------------------
+# CUSTOMIZE THE APPRUN (PART 1)
+rm -R -f ./$APP/$APP.AppDir/AppRun
+cat >> ./$APP/$APP.AppDir/AppRun << 'EOF'
+#!/bin/sh
+HERE="$(dirname "$(readlink -f "${0}")")"
+export UNION_PRELOAD="${HERE}"
+EOF
+
+# LIBUNIONPRELOAD
+read -p ' Do you wish to add libunionpreload (y,N)?' yn
+case $yn in
+	'Y'|'y') wget https://github.com/project-portable/libunionpreload/releases/download/amd64/libunionpreload.so
+		chmod a+x libunionpreload.so
+		mv ./libunionpreload.so ./$APP/$APP.AppDir/
+		echo 'export LD_PRELOAD="${HERE}"/libunionpreload.so' >> ./$APP/$APP.AppDir/AppRun;;
+	'N'|'n'|*) echo "Proceeding without libunionpreload";;
+esac
+
+# SYSTEM LIBRARIES
+read -p ' Do you wish to include system libraries (Y,n)?' yn
+case $yn in
+	'N'|'n') echo 'export LD_LIBRARY_PATH="${HERE}"/usr/lib/:"${HERE}"/usr/lib/i386-linux-gnu/:"${HERE}"/usr/lib/x86_64-linux-gnu/:"${HERE}"/lib/:"${HERE}"/lib/i386-linux-gnu/:"${HERE}"/lib/x86_64-linux-gnu/:"${LD_LIBRARY_PATH}"' >> ./$APP/$APP.AppDir/AppRun;;
+	'Y'|'y'|*) echo 'export LD_LIBRARY_PATH=/lib/:/lib64/:/lib/x86_64-linux-gnu/:/usr/lib/:"${HERE}"/usr/lib/:"${HERE}"/usr/lib/i386-linux-gnu/:"${HERE}"/usr/lib/x86_64-linux-gnu/:"${HERE}"/lib/:"${HERE}"/lib/i386-linux-gnu/:"${HERE}"/lib/x86_64-linux-gnu/:"${LD_LIBRARY_PATH}"' >> ./$APP/$APP.AppDir/AppRun;;
+
+esac
+
+# CUSTOMIZE THE APPRUN (PART 2)
+cat >> ./$APP/$APP.AppDir/AppRun << 'EOF'
+export PATH="${HERE}"/usr/bin/:"${HERE}"/usr/sbin/:"${HERE}"/usr/games/:"${HERE}"/bin/:"${HERE}"/sbin/:"${PATH}"
+export PYTHONPATH="${HERE}"/usr/share/pyshared/:"${HERE}"/usr/lib/python*/:"${PYTHONPATH}"
+export PYTHONHOME="${HERE}"/usr/:"${HERE}"/usr/lib/python*/
+export XDG_DATA_DIRS="${HERE}"/usr/share/:"${XDG_DATA_DIRS}"
+export PERLLIB="${HERE}"/usr/share/perl5/:"${HERE}"/usr/lib/perl5/:"${PERLLIB}"
+export GSETTINGS_SCHEMA_DIR="${HERE}"/usr/share/glib-2.0/schemas/:"${GSETTINGS_SCHEMA_DIR}"
+export QT_PLUGIN_PATH="${HERE}"/usr/lib/qt4/plugins/:"${HERE}"/usr/lib/i386-linux-gnu/qt4/plugins/:"${HERE}"/usr/lib/x86_64-linux-gnu/qt4/plugins/:"${HERE}"/usr/lib32/qt4/plugins/:"${HERE}"/usr/lib64/qt4/plugins/:"${HERE}"/usr/lib/qt5/plugins/:"${HERE}"/usr/lib/i386-linux-gnu/qt5/plugins/:"${HERE}"/usr/lib/x86_64-linux-gnu/qt5/plugins/:"${HERE}"/usr/lib32/qt5/plugins/:"${HERE}"/usr/lib64/qt5/plugins/:"${QT_PLUGIN_PATH}"
+EXEC=$(grep -e '^Exec=.*' "${HERE}"/*.desktop | head -n 1 | cut -d "=" -f 2- | sed -e 's|%.||g')
+EOF
+
+# BINARY PATH
+read -p ' Do you wish to specify the binary`s path manually (y,N)?' yn
+case $yn in 
+	'Y'|'y') read -r -p " ◆ ADD THE PATH (EXAMPLE '/usr/lib...'):" RESPONSE
+		case "$RESPONSE" in
+			*) echo 'exec "${HERE}"'$RESPONSE' "$@"' >> ./$APP/$APP.AppDir/AppRun;;
+		esac;;
+	'N'|'n'|*) echo 'exec ${EXEC} "$@"' >> ./$APP/$APP.AppDir/AppRun;;
+esac
+	
+# MADE THE APPRUN EXECUTABLE
+chmod a+x ./$APP/$APP.AppDir/AppRun
+# END OF THE PART RELATED TO THE APPRUN, NOW WE WELL SEE IF EVERYTHING WORKS ----------------------------------------------------------------------
+
+# IMPORT THE LAUNCHER AND THE ICON TO THE APPDIR IF THEY NOT EXIST
+if test -f ./$APP/$APP.AppDir/*.desktop; then
+	echo "The desktop file exists"
+else
+	echo "Trying to get the .desktop file"
+	cp ./$APP/$APP.AppDir/usr/share/applications/*$(ls . | grep -i $APP | cut -c -4)*desktop ./$APP/$APP.AppDir/ 2>/dev/null
+fi
+
+ICONNAME=$(cat *desktop | grep "Icon=" | cut -c 6-)
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/22x22/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/24x24/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/32x32/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/48x48/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/64x64/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/128x128/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/256x256/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/512x512/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/scalable/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/applications/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+
+# EXPORT THE APP TO AN APPIMAGE
+ARCH=x86_64 ./appimagetool -n ./$APP/$APP.AppDir
+cd ..
+mv ./tmp/*.AppImage .
+chmod a+x *.AppImage
+
