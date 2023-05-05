@@ -16,4 +16,4 @@ Example:
 This will create an AppImage of the web browser Chromium from the ppa:[savoury1/chromium](https://launchpad.net/~savoury1/+archive/ubuntu/chromium) including the language pack.
 The script also choose the previous Ubuntu LTS as a basis (today, May 05, 2023, it is Ubuntu 20.04 "Focal Fossa").
 
-During the build you will choose if you want to include libunionpreload, if you want to rely also on the system libraries and if the AppImage has a binary executable in other paths.
+During the build you will choose if you want to include [libunionpreload](https://github.com/project-portable/libunionpreload), if you want to rely also on the system libraries and if the AppImage has a binary executable in other paths.
