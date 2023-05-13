@@ -15,6 +15,6 @@ Example, suppose you want to build the Chromium web browser from the ppa:[savour
 
     ./appimagen chromium-browser chromium-browser-l10n
     
-Then choose `2` (i.e. "Ubuntu"), press `Y` to add a PPA and past `savoury1/chromium` (more PPAs are listed at [https://launchpad.net/~savoury1](https://launchpad.net/~savoury1)).
+Then choose `2` (i.e. "Ubuntu"), press `Y` to add a PPA and copy/paste `savoury1/chromium` (more PPAs are listed at [https://launchpad.net/~savoury1](https://launchpad.net/~savoury1)).
 
 During the build you will choose if you want to include [libunionpreload](https://github.com/project-portable/libunionpreload), if you want to rely also on the system libraries and if the AppImage has a binary executable into another `$PATH`.
