@@ -3,31 +3,66 @@
 APP=$1
 
 # CREATE A TEMPORARY DIRECTORY
-mkdir tmp;
+mkdir -p tmp;
 cd tmp;
 
 # DOWNLOADING THE DEPENDENCIES
-wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
-wget https://raw.githubusercontent.com/ivan-hc/AM-application-manager/main/tools/pkg2appimage
+if test -f ./appimagetool; then
+	echo "appimagetool already exist" 1> /dev/null
+else
+	echo " Downloading appimagetool and pkg2appimage, please wait..."
+	wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+	wget -q https://raw.githubusercontent.com/ivan-hc/AM-application-manager/main/tools/pkg2appimage
+fi
 chmod a+x ./appimagetool ./pkg2appimage
+rm -f ./recipe.yml
+
+# CREATING THE HEAD OF THE RECIPE
+echo "app: $APP
+binpatch: true
+
+ingredients:" >> recipe.yml
 
 # CHECK THE NAME OF THE PREVIOUS "UBUNTU LTS" STILL SUPPORTED
 PREVIOUSLTS=$(wget -q https://releases.ubuntu.com/ -O - | grep class | grep LTS | grep -m2 href | tail -n1 | sed -n 's/.*href="\([^"]*\).*/\1/p' | rev| cut -c 2- | rev)
 
-# CREATING THE RECIPE OF THE APPIMAGE
-echo "app: $APP
-binpatch: true
 
-ingredients:
-  dist: $PREVIOUSLTS 
-  sources:
-    - deb http://archive.ubuntu.com/ubuntu/ $PREVIOUSLTS main universe restricted multiverse
-    - deb http://archive.ubuntu.com/ubuntu $PREVIOUSLTS-security main universe restricted multiverse
-    - deb http://archive.ubuntu.com/ubuntu/ $PREVIOUSLTS-updates main universe restricted multiverse
-  ppas:
-    - $2/$3
-  packages:
-    - $APP
+# CHOOSE BETWEEN UBUNTU AND DEBIAN
+read -r -p " WHAT DISTRO YOU CHOOSE BETWEEN DEBIAN (1) AND UBUNTU $PREVIOUSLTS (2)? : " distribution
+case "$distribution" in
+debian|DEBIAN|Debian|1) read -r -p " WHAT BRANCH OF DEBIAN YOU CHOOSE (stable, testing, oldstable...)?" DEBIANBRANCH
+	case "$DEBIANBRANCH" in
+	*) echo -e "\n  dist: $DEBIANBRANCH\n  sources:\n    - deb http://ftp.debian.org/debian/ $DEBIANBRANCH main contrib non-free\n    - deb http://security.debian.org/debian-security/ $DEBIANBRANCH-security main contrib non-free\n    - deb http://ftp.debian.org/debian/ $DEBIANBRANCH-updates main contrib non-free" >> recipe.yml;;
+	esac;;
+ubuntu|UBUNTU|Ubuntu|2) echo -e "\n  dist: $PREVIOUSLTS\n  sources:\n    - deb http://archive.ubuntu.com/ubuntu/ $PREVIOUSLTS main universe restricted multiverse\n    - deb http://archive.ubuntu.com/ubuntu $PREVIOUSLTS-security main universe restricted multiverse\n    - deb http://archive.ubuntu.com/ubuntu/ $PREVIOUSLTS-updates main universe restricted multiverse" >> recipe.yml
+	# IF UBUNTU, CHOOSE A PPA
+	read -p " DO YOU WISH TO ADD A PPA (y,N)?" yn
+		case $yn in
+		'Y'|'y') read -r -p " ADD THE PPA (example 'name/repository') : " ppa
+			case $ppa in
+			*) echo -e "  ppas:\n    - $ppa" >> recipe.yml
+			esac
+			while true; do
+			read -p " DO YOU WISH TO ADD ANOTHER PPA (y,N)?" yn
+			case $yn in
+			'Y'|'y') while true; do
+				read -r -p " ADD THE PPA (example 'name/repository') : " ppa
+				case $ppa in
+				*) echo "    - $ppa" >> recipe.yml && break
+				esac
+				done;;
+			'N'|'n'|*) break;;
+			esac
+			done;;
+		'N'|'n'|*) break;;
+	esac
+esac
+
+# ADD THE OTHER PACKAGES
+echo "  packages:
+    - $1
+    - $2
+    - $3
     - $4
     - $5
     - $6
@@ -85,7 +120,7 @@ EOF
 # BINARY PATH
 read -p ' Do you wish to specify the binary`s path manually (y,N)?' yn
 case $yn in 
-	'Y'|'y') read -r -p " ◆ ADD THE PATH (EXAMPLE '/usr/lib...'):" RESPONSE
+	'Y'|'y') read -r -p " ◆ ADD THE PATH (EXAMPLE '/usr/lib.../$APP'):" RESPONSE
 		case "$RESPONSE" in
 			*) echo 'exec "${HERE}"'$RESPONSE' "$@"' >> ./$APP/$APP.AppDir/AppRun;;
 		esac;;
