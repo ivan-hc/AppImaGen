@@ -1,5 +1,37 @@
 #!/usr/bin/env bash
 
+VERSION=2.1
+
+case "$1" in
+
+-h|--help) echo "
+ APPIMAGEN $VERSION"
+echo ' 
+ AN INTERACTIVE SCRIPT THAT GENERATES AN APPIMAGE FROM DEBIAN OR FROM A PPA OF
+ YOUR CHOICE FOR THE PREVIOUS (NOT THE OLDEST) AND STILL SUPPORTED UBUNTU LTS.
+
+ USAGE:	
+
+   appimagen [package1] [package2] [package3]
+ 
+ EXAMPLES:
+
+   appimagen chromium-browser chromium-browser-l10n
+   appimagen mpv ffmpeg
+ 		
+ OPTIONS:	
+ 
+   -h/--help		Shows this message
+   -v/--version		Shows the version of this script
+ 
+ SITE:		https://github.com/ivan-hc/AppImaGen
+ 
+ THIS SCRIPT IS PART OF https://github.com/ivan-hc/AM-APPLICATION-MANAGER
+';;
+
+-v|--version) echo "AppImaGen $VERSION";;
+
+*)
 APP=$1
 
 # CREATE A TEMPORARY DIRECTORY
@@ -8,10 +40,15 @@ cd tmp;
 
 # DOWNLOADING THE DEPENDENCIES
 if test -f ./appimagetool; then
-	echo "appimagetool already exist" 1> /dev/null
+	echo " appimagetool already exists" 1> /dev/null
 else
-	echo " Downloading appimagetool and pkg2appimage, please wait..."
+	echo " Downloading appimagetool..."
 	wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+fi
+if test -f ./pkg2appimage; then
+	echo " pkg2appimage already exists" 1> /dev/null
+else
+	echo " Downloading pkg2appimage..."
 	wget -q https://raw.githubusercontent.com/ivan-hc/AM-application-manager/main/tools/pkg2appimage
 fi
 chmod a+x ./appimagetool ./pkg2appimage
@@ -155,5 +192,5 @@ cp ./$APP/$APP.AppDir/usr/share/applications/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/
 ARCH=x86_64 ./appimagetool -n ./$APP/$APP.AppDir
 cd ..
 mv ./tmp/*.AppImage .
-chmod a+x *.AppImage
-
+chmod a+x *.AppImage;;
+esac
