@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION=2.1
+VERSION=2.1-1
 
 case "$1" in
 
@@ -109,11 +109,6 @@ echo "  packages:
 
 # DOWNLOAD ALL THE NEEDED PACKAGES AND COMPILE THE APPDIR
 ./pkg2appimage ./recipe.yml
-
-# ...DOWNLOADING LIBUNIONPRELOAD...
-wget https://github.com/project-portable/libunionpreload/releases/download/amd64/libunionpreload.so
-chmod a+x libunionpreload.so
-mv ./libunionpreload.so ./$APP/$APP.AppDir/
 
 # THIS IS THE PART RELATED TO THE APPRUN SCRIPT, I.E. THE ENGINE OF THE APPIMAGE---------------------------------------------------------------
 # CUSTOMIZE THE APPRUN (PART 1)
