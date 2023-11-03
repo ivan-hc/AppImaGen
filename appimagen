@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-VERSION=2.1-1
+VERSION=2.1-2
 
 case "$1" in
 
@@ -109,6 +109,9 @@ echo "  packages:
 
 # DOWNLOAD ALL THE NEEDED PACKAGES AND COMPILE THE APPDIR
 ./pkg2appimage ./recipe.yml
+
+# COMPILE SCHEMAS
+glib-compile-schemas ./$APP/$APP.AppDir/usr/share/glib-2.0/schemas/ || echo "No ./usr/share/glib-2.0/schemas/"
 
 # THIS IS THE PART RELATED TO THE APPRUN SCRIPT, I.E. THE ENGINE OF THE APPIMAGE---------------------------------------------------------------
 # CUSTOMIZE THE APPRUN (PART 1)
