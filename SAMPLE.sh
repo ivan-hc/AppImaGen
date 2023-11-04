@@ -28,7 +28,7 @@ binpatch: true
 
 ingredients:
 
-  dist: oldoldstable
+  dist: oldstable
   sources:
     - deb http://ftp.debian.org/debian/ oldstable main contrib non-free
     - deb http://security.debian.org/debian-security/ oldstable-security main contrib non-free
