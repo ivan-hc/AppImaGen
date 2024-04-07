@@ -4,14 +4,14 @@ APP=SAMPLE
 
 # CREATE A TEMPORARY DIRECTORY
 mkdir -p tmp
-cd tmp
+cd tmp || return
 
 # DOWNLOADING THE DEPENDENCIES
 if test -f ./appimagetool; then
 	echo " appimagetool already exists" 1> /dev/null
 else
 	echo " Downloading appimagetool..."
-	wget -q $(wget -q https://api.github.com/repos/probonopd/go-appimage/releases -O - | grep -v zsync | grep -i continuous | grep -i appimagetool | grep -i x86_64 | grep browser_download_url | cut -d '"' -f 4 | head -1) -O appimagetool
+	wget -q "$(wget -q https://api.github.com/repos/probonopd/go-appimage/releases -O - | grep -v zsync | grep -i continuous | grep -i appimagetool | grep -i x86_64 | grep browser_download_url | cut -d '"' -f 4 | head -1)" -O appimagetool
 fi
 if test -f ./pkg2appimage; then
 	echo " pkg2appimage already exists" 1> /dev/null
@@ -76,20 +76,20 @@ if test -f ./$APP/$APP.AppDir/*.desktop; then
 	echo "The desktop file exists"
 else
 	echo "Trying to get the .desktop file"
-	cp ./$APP/$APP.AppDir/usr/share/applications/*$(ls . | grep -i $APP | cut -c -4)*desktop ./$APP/$APP.AppDir/ 2>/dev/null
+	cp "./$APP/$APP.AppDir/usr/share/applications/*$(ls . | grep -i $APP | cut -c -4)*desktop" ./$APP/$APP.AppDir/ 2>/dev/null
 fi
 
 ICONNAME=$(cat ./$APP/$APP.AppDir/*desktop | grep "Icon=" | head -1 | cut -c 6-)
-cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/22x22/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
-cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/24x24/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
-cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/32x32/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
-cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/48x48/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
-cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/64x64/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
-cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/128x128/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
-cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/256x256/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
-cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/512x512/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
-cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/scalable/apps/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
-cp ./$APP/$APP.AppDir/usr/share/applications/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/22x22/apps/*"$ICONNAME"* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/24x24/apps/*"$ICONNAME"* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/32x32/apps/*"$ICONNAME"* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/48x48/apps/*"$ICONNAME"* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/64x64/apps/*"$ICONNAME"* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/128x128/apps/*"$ICONNAME"* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/256x256/apps/*"$ICONNAME"* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/512x512/apps/*"$ICONNAME"* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/icons/hicolor/scalable/apps/*"$ICONNAME"* ./$APP/$APP.AppDir/ 2>/dev/null
+cp ./$APP/$APP.AppDir/usr/share/applications/*"$ICONNAME"* ./$APP/$APP.AppDir/ 2>/dev/null
 
 # UNCOMMENT THE FOLLOWING LINE TO REMOVE FILES IN "METAINFO" IN CASE OF ERRORS WITH "APPSTREAM"
 #rm -R -f ./$APP/$APP.AppDir/usr/share/metainfo/*
@@ -98,4 +98,4 @@ cp ./$APP/$APP.AppDir/usr/share/applications/*$ICONNAME* ./$APP/$APP.AppDir/ 2>/
 ARCH=x86_64 VERSION=$(./appimagetool -v | grep -o '[[:digit:]]*') ./appimagetool -s ./$APP/$APP.AppDir
 cd ..
 mv ./tmp/*.AppImage .
-chmod a+x *.AppImage
+chmod a+x ./*.AppImage
