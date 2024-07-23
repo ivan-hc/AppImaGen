@@ -62,7 +62,6 @@ glib-compile-schemas ./"$APP"/"$APP".AppDir/usr/share/glib-2.0/schemas/ || echo 
 rm -R -f ./"$APP"/"$APP".AppDir/AppRun
 cat >> ./"$APP"/"$APP".AppDir/AppRun << 'EOF'
 #!/bin/sh
-set -u
 HERE="$(dirname "$(readlink -f "${0}")")"
 export UNION_PRELOAD="${HERE}"
 
