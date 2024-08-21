@@ -11,7 +11,7 @@ if test -f ./appimagetool; then
 	echo " appimagetool already exists" 1> /dev/null
 else
 	echo " Downloading appimagetool..."
-	wget -q "$(wget -q https://api.github.com/repos/probonopd/go-appimage/releases -O - | sed 's/"/ /g; s/ /\n/g' | grep -o 'https.*continuous.*tool.*86_64.*mage$')" -O appimagetool
+	wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
 fi
 if test -f ./pkg2appimage; then
 	echo " pkg2appimage already exists" 1> /dev/null
@@ -120,11 +120,7 @@ cp ./"$APP"/"$APP".AppDir/usr/share/applications/*"$ICONNAME"* ./"$APP"/"$APP".A
 
 
 # EXPORT THE APP TO AN APPIMAGE
-ARCH=x86_64 VERSION="$VERSION" ./appimagetool -s ./"$APP"/"$APP".AppDir
-if ! test -f ./*.AppImage; then
-	rm -R -f ./"$APP"/"$APP".AppDir/usr/share/metainfo/*
-	ARCH=x86_64 VERSION="$VERSION" ./appimagetool -s ./"$APP"/"$APP".AppDir
-fi
+ARCH=x86_64 ./appimagetool --comp zstd --mksquashfs-opt -Xcompression-level --mksquashfs-opt 20 ./"$APP"/"$APP".AppDir
 if ! test -f ./*.AppImage; then
 	echo "No AppImage available."; exit 1
 fi 
