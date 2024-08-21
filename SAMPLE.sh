@@ -116,11 +116,10 @@ cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/512x512/apps/*"$ICONNAME"* ./"
 cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/scalable/apps/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
 cp ./"$APP"/"$APP".AppDir/usr/share/applications/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
 
-# UNCOMMENT THE FOLLOWING LINE TO REMOVE FILES IN "METAINFO" IN CASE OF ERRORS WITH "APPSTREAM"
-
-
 # EXPORT THE APP TO AN APPIMAGE
-ARCH=x86_64 ./appimagetool --comp zstd --mksquashfs-opt -Xcompression-level --mksquashfs-opt 20 ./"$APP"/"$APP".AppDir
+printf '#!/bin/sh\nexit 0' > ./desktop-file-validate # hack due to https://github.com/AppImage/appimagetool/pull/47
+chmod a+x ./desktop-file-validate
+PATH="$PATH:$PWD" ARCH=x86_64 ./appimagetool -n ./"$APP"/"$APP".AppDir
 if ! test -f ./*.AppImage; then
 	echo "No AppImage available."; exit 1
 fi 
