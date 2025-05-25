@@ -2,82 +2,126 @@
 
 set -u
 APP=SAMPLE
+APPIMAGE_DIR="$APP/$APP.AppDir"
 
-# CREATE A TEMPORARY DIRECTORY
-mkdir -p tmp && cd tmp || exit 1
+export ARCH="x86_64"
 
-# DOWNLOADING THE DEPENDENCIES
-if test -f ./appimagetool; then
-	echo " appimagetool already exists" 1> /dev/null
+# DEPENDENCIES
+
+dependencies="ar tar unzip"
+for d in $dependencies; do
+	if ! command -v "$d" 1>/dev/null; then
+		echo "ERROR: missing command \"d\", install the above and retry" && exit 1
+	fi
+done
+
+_appimagetool() {
+	if ! command -v appimagetool 1>/dev/null; then
+		[ ! -f ./appimagetool ] && echo " Downloading appimagetool..." && curl -#Lo appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-"$ARCH".AppImage && chmod a+x ./appimagetool
+		./appimagetool "$@"
+	else
+		appimagetool "$@"
+	fi
+}
+
+# CREATE DIRECTORIES
+mkdir -p "tmp/$APPIMAGE_DIR" && cd tmp || exit 1
+
+################################################################################################################################################################
+#				BUILD
+################################################################################################################################################################
+
+# This entire section is geared towards compiling via pkg2appimage, but you can replace everything with a different build type
+
+_pkg2appimage() {
+	if ! command -v pkg2appimage 1>/dev/null; then
+		[ ! -f ./pkg2appimage ] && echo " Downloading pkg2appimage..." && curl -#Lo pkg2appimage "$(curl -Ls https://api.github.com/repos/AppImageCommunity/pkg2appimage/releases/latest | sed 's/[()",{} ]/\n/g' | grep -io "http.*$ARCH.*appimage$" | head -1)" && chmod a+x ./pkg2appimage
+		./pkg2appimage "$@"
+	else
+		pkg2appimage "$@"
+	fi
+}
+
+# RECIPE
+distro="debian"
+codename="oldstable"
+packages=""
+ppas=""
+
+debian_sources="
+    - deb http://ftp.debian.org/debian/ $codename main contrib non-free
+    - deb http://security.debian.org/debian-security/ $codename-security main contrib non-free
+    - deb http://ftp.debian.org/debian/ $codename-updates main contrib non-free
+    "
+
+ubuntu_sources="
+    - deb http://archive.ubuntu.com/ubuntu/ $codename main universe restricted multiverse
+    - deb http://archive.ubuntu.com/ubuntu $codename-security main universe restricted multiverse
+    - deb http://archive.ubuntu.com/ubuntu/ $codename-updates main universe restricted multiverse
+    "
+
+if [ "$distro" = debian ]; then
+	sources="$debian_sources"
 else
-	echo " Downloading appimagetool..."
-	wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage -O appimagetool
+	sources="$ubuntu_sources"
 fi
-if test -f ./pkg2appimage; then
-	echo " pkg2appimage already exists" 1> /dev/null
-else
-	echo " Downloading pkg2appimage..."
-	wget -q https://raw.githubusercontent.com/ivan-hc/AM-application-manager/main/tools/pkg2appimage
-fi
-chmod a+x ./appimagetool ./pkg2appimage
-rm -f ./recipe.yml
 
-# CREATING THE HEAD OF THE RECIPE
-echo "app: $APP
+recipe="app: $APP
 binpatch: true
 
 ingredients:
 
-  dist: oldstable
+  dist: $codename
   #script:
     #- COMMAND
-  sources:
-    - deb http://ftp.debian.org/debian/ oldstable main contrib non-free
-    - deb http://security.debian.org/debian-security/ oldstable-security main contrib non-free
-    - deb http://ftp.debian.org/debian/ oldstable-updates main contrib non-free
-  packages:
-    - $APP" > recipe.yml
+  sources:$sources"
 
+echo "$recipe" > recipe.yml
 
-# DOWNLOAD ALL THE NEEDED PACKAGES AND COMPILE THE APPDIR
-./pkg2appimage ./recipe.yml
-
-# VERSION
-MAIN_DEB=$(find . -type f -name "$APP\_*.deb" | head -1 | sed 's:.*/::')
-if test -f ./"$APP"/"$MAIN_DEB"; then
-	ar x ./"$APP"/"$MAIN_DEB" && tar xf ./control.tar.* && rm -f ./control.tar.* ./data.tar.* || exit 1
-	VERSION=$(grep Version 0<control | cut -c 10-)
-else
-	VERSION="test"
+if [ -n "$ppas" ]; then
+	echo "  ppas:" >> recipe.yml
+	for p in $ppas; do
+		echo "    - $p" >> recipe.yml
+	done
 fi
 
-# LIBUNIONPRELOAD
-rm -f ./"$APP"/"$APP".AppDir/libunionpreload.so
-#wget -q https://github.com/project-portable/libunionpreload/releases/download/amd64/libunionpreload.so -O ./"$APP"/"$APP".AppDir/libunionpreload.so && chmod a+x ./"$APP"/"$APP".AppDir/libunionpreload.so || exit 1
+echo "  packages:
+    - $APP" >> recipe.yml
+
+if [ -n "$packages" ]; then
+	for p in $packages; do
+		echo "    - $p" >> recipe.yml
+	done
+fi
+
+# DOWNLOAD ALL THE NEEDED PACKAGES AND COMPILE THE APPDIR
+_pkg2appimage ./recipe.yml
 
 # COMPILE SCHEMAS
-glib-compile-schemas ./"$APP"/"$APP".AppDir/usr/share/glib-2.0/schemas/ || echo "No ./usr/share/glib-2.0/schemas/"
+glib-compile-schemas "$APPIMAGE_DIR"/usr/share/glib-2.0/schemas/ || echo "No ./usr/share/glib-2.0/schemas/"
 
-# CUSTOMIZE THE APPRUN
-rm -R -f ./"$APP"/"$APP".AppDir/AppRun
-cat >> ./"$APP"/"$APP".AppDir/AppRun << 'EOF'
+################################################################################################################################################################
+#				COMMON
+################################################################################################################################################################
+
+# APPRUN
+rm -f "$APPIMAGE_DIR"/AppRun
+cat >> "$APPIMAGE_DIR"/AppRun << 'EOF'
 #!/bin/sh
 HERE="$(dirname "$(readlink -f "${0}")")"
-export UNION_PRELOAD="${HERE}"
 
 export PATH="${HERE}"/usr/bin/:"${HERE}"/usr/sbin/:"${HERE}"/usr/games/:"${HERE}"/bin/:"${HERE}"/sbin/:"${PATH}"
 
-if test -d "${HERE}"/libunionpreload.so; then export LD_PRELOAD="${HERE}"/libunionpreload.so; fi
 export LD_LIBRARY_PATH="${HERE}"/usr/lib/:"${HERE}"/usr/lib/x86_64-linux-gnu/:"${HERE}"/lib/:"${HERE}"/lib64/:"${HERE}"/lib/x86_64-linux-gnu/:"${LD_LIBRARY_PATH}"
-#export LD_LIBRARY_PATH=/lib/:/lib64/:/lib/x86_64-linux-gnu/:/usr/lib/:"${LD_LIBRARY_PATH}"
+#export LD_LIBRARY_PATH=/lib/:/lib64/:/lib/x86_64-linux-gnu/:/usr/lib/:"${LD_LIBRARY_PATH}" # Uncomment to use system libraries
+
+export XDG_DATA_DIRS="${HERE}"/usr/share/:"${XDG_DATA_DIRS}"
 
 if test -d "${HERE}"/usr/lib/python*; then
   PYTHONVERSION=$(find "${HERE}"/usr/lib -type d -name "python*" | head -1 | sed 's:.*/::')
   export PYTHONPATH="${HERE}"/usr/lib/"$PYTHONVERSION"/site-packages/:"${HERE}"/usr/lib/"$PYTHONVERSION"/lib-dynload/:"${PYTHONPATH}"
   export PYTHONHOME="${HERE}"/usr/
 fi
-
-export XDG_DATA_DIRS="${HERE}"/usr/share/:"${XDG_DATA_DIRS}"
 
 export PERLLIB="${HERE}"/usr/share/perl5/:"${HERE}"/usr/lib/perl5/:"${PERLLIB}"
 
@@ -91,36 +135,45 @@ fi
 EXEC=$(grep -e '^Exec=.*' "${HERE}"/*.desktop | head -n 1 | cut -d "=" -f 2- | sed -e 's|%.||g')
 exec ${EXEC} "$@"
 EOF
-	
-# MADE THE APPRUN EXECUTABLE
-chmod a+x ./"$APP"/"$APP".AppDir/AppRun
-# END OF THE PART RELATED TO THE APPRUN, NOW WE WELL SEE IF EVERYTHING WORKS ----------------------------------------------------------------------
+chmod a+x "$APPIMAGE_DIR"/AppRun
 
-# IMPORT THE LAUNCHER AND THE ICON TO THE APPDIR IF THEY NOT EXIST
-if test -f ./"$APP"/"$APP".AppDir/*.desktop; then
-	echo "The desktop file exists"
+# VERSION
+MAIN_DEB=$(find . -type f -name "$APP\_*.deb" | head -1 | sed 's:.*/::')
+if test -f "$APP"/"$MAIN_DEB"; then
+	ar x "$APP"/"$MAIN_DEB" && tar xf ./control.tar.* && rm -f ./control.tar.* ./data.tar.* || exit 1
+	PKG_VERSION=$(grep Version 0<control | cut -c 10-)
 else
-	echo "Trying to get the .desktop file"
-	cp "./$APP/$APP.AppDir/usr/share/applications/*$(find . -type f -name "*$APP*.desktop" | head -1 | sed 's:.*/::')*" ./"$APP"/"$APP".AppDir/ 2>/dev/null
+	PKG_VERSION="test"
 fi
 
-ICONNAME=$(cat ./"$APP"/"$APP".AppDir/*desktop | grep "Icon=" | head -1 | cut -c 6-)
-cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/22x22/apps/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
-cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/24x24/apps/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
-cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/32x32/apps/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
-cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/48x48/apps/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
-cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/64x64/apps/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
-cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/128x128/apps/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
-cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/256x256/apps/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
-cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/512x512/apps/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
-cp ./"$APP"/"$APP".AppDir/usr/share/icons/hicolor/scalable/apps/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
-cp ./"$APP"/"$APP".AppDir/usr/share/applications/*"$ICONNAME"* ./"$APP"/"$APP".AppDir/ 2>/dev/null
+# LAUNCHER
+if ! test -f "$APPIMAGE_DIR"/*.desktop; then
+	echo "Trying to get the .desktop file"
+	cp "./$APP/$APP.AppDir/usr/share/applications/*$(find . -type f -name "*$APP*.desktop" | head -1 | sed 's:.*/::')*" "$APPIMAGE_DIR"/ 2>/dev/null
+fi
 
-# EXPORT THE APP TO AN APPIMAGE
-printf '#!/bin/sh\nexit 0' > ./desktop-file-validate # hack due to https://github.com/AppImage/appimagetool/pull/47
-chmod a+x ./desktop-file-validate
-PATH="$PATH:$PWD" ARCH=x86_64 ./appimagetool -n ./"$APP"/"$APP".AppDir
+# ICON
+ICONNAME=$(cat "$APPIMAGE_DIR"/*desktop | grep "Icon=" | head -1 | cut -c 6-)
+cp -r "$APPIMAGE_DIR"/usr/share/icons/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/22x22/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/24x24/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/32x32/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/48x48/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/64x64/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/128x128/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/192x192/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/256x256/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/512x512/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/scalable/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+cp -r "$APPIMAGE_DIR"/usr/share/pixmaps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+
+# CONVERT THE APPDIR TO AN APPIMAGE
+
+REPO_NAME="$APP-appimage"
+TAG_NAME="latest"
+UPINFO="gh-releases-zsync|$GITHUB_REPOSITORY_OWNER|$REPO_NAME|$TAG_NAME|*$ARCH.AppImage.zsync"
+VERSION="$PKG_VERSION" _appimagetool -u "$UPINFO" -n "$APPIMAGE_DIR" 2>&1
 if ! test -f ./*.AppImage; then
 	echo "No AppImage available."; exit 1
-fi 
-cd .. && mv ./tmp/*.AppImage . && chmod a+x ./*.AppImage || exit 1
+fi
+cd .. && mv ./tmp/*.AppImage* . && chmod a+x ./*.AppImage || exit 1
