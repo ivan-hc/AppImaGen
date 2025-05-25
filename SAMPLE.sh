@@ -1,6 +1,5 @@
 #!/bin/sh
 
-set -u
 APP=SAMPLE
 APPIMAGE_DIR="$APP/$APP.AppDir"
 
@@ -169,6 +168,7 @@ cp -r "$APPIMAGE_DIR"/usr/share/pixmaps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/nu
 
 # CONVERT THE APPDIR TO AN APPIMAGE
 
+[ -z "$GITHUB_REPOSITORY_OWNER" ] && GITHUB_REPOSITORY_OWNER="ivan-hc"
 REPO_NAME="$APP-appimage"
 TAG_NAME="latest"
 UPINFO="gh-releases-zsync|$GITHUB_REPOSITORY_OWNER|$REPO_NAME|$TAG_NAME|*$ARCH.AppImage.zsync"
