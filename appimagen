@@ -69,14 +69,14 @@ case "$1" in
 
 		# Add packages
 		echo "$DIVIDING_LINE"
-		read -r -p " Add packages (pkg1 pkg2 pkg3...) or leave blank: " pkgs
+		read -r -ep " Add packages (pkg1 pkg2 pkg3...) or leave blank:$(printf "\n\n ")" pkgs
 		if [ -n "$pkgs" ]; then
-			sed -i "s/packages=\"/packages=\"$pkgs/g" "$APP"-builder.sh
+			sed -i "s/packages=\"/packages=\"$pkgs /g" "$APP"-builder.sh
 		fi
 
 		# Choose the base distro
 		echo "$DIVIDING_LINE"
-		read -r -p " Choose between Debian (default) or Ubuntu (type 2): " response
+		read -r -ep " Choose between Debian (default) or Ubuntu (type 2): " response
 		if echo "$response" | grep -q "^2"; then
 			base_distro="ubuntu"
 			sed -i 's/distro="debian"/distro="ubuntu"/g' "$APP"-builder.sh
@@ -87,29 +87,29 @@ case "$1" in
 		# Codenames and PPAs
 		echo "$DIVIDING_LINE"
 		if [ "$base_distro" = "debian" ]; then
-			read -r -p " Add a codename (stable, testing, oldstable...) or leave blank: " codename
+			read -r -ep " Add a codename (stable, testing, oldstable...) or leave blank: " codename
 			[ -n "$codename" ] && sed -i "s/oldstable/$codename/g" "$APP"-builder.sh
 		elif [ "$base_distro" = "ubuntu" ]; then
-			read -r -p " Add a codename (focal, jammy, noble...) or leave blank: " codename
+			read -r -ep " Add a codename (focal, jammy, noble...) or leave blank: " codename
 			[ -n "$codename" ] && sed -i "s/oldstable/$codename/g" "$APP"-builder.sh
 			echo "$DIVIDING_LINE"
 			echo " Do you want to add PPAs?"
-			read -r -p " Add one or more like this 'name/repository' or leave blank: " ppas
+			read -r -ep " Add one or more like this 'name/repository' or leave blank:$(printf "\n\n ")" ppas
 			if [ -n "$ppas" ]; then
-				sed -i "s#ppas=\"#ppas=\"$ppas#g" "$APP"-builder.sh
+				sed -i "s#ppas=\"#ppas=\"$ppas #g" "$APP"-builder.sh
 			fi
 		fi
 
 		# Choose if the AppImage should use system libraries
 		echo "$DIVIDING_LINE"
-		read -r -p ' Do you wish to include system libraries (y,N)?' syslibraries
+		read -r -ep ' Do you wish to include system libraries (y,N)?' syslibraries
 		if echo "$syslibraries" | grep -qi "^y"; then
 			sed -i "s/^#export/export/g" "$APP"-builder.sh
 		fi
 
 		# Run the script
 		echo "$DIVIDING_LINE"
-		read -r -p ' Do you want to run the script (y,N)?' appimagenrun
+		read -r -ep ' Do you want to run the script (y,N)?' appimagenrun
 		if echo "$appimagenrun" | grep -qi "^y"; then
 			mkdir -p AppImaGen-builds/"$APP" && cp -r "$APP"-builder.sh AppImaGen-builds/"$APP"/ || exit 1
 			cd AppImaGen-builds/"$APP" || exit 1
@@ -118,5 +118,20 @@ case "$1" in
 			echo "$DIVIDING_LINE"
 			chmod a+x ./"$APP"-builder.sh && ./"$APP"-builder.sh
 		fi
+
+		# Test the AppImage
+		if test -f ./*AppImage; then
+			echo "$DIVIDING_LINE"
+			read -r -ep ' Do you want to run the Appimage (y,N)?' appimagerun
+			if echo "$appimagerun" | grep -qi "^y"; then
+				./*AppImage
+			fi
+			echo "$DIVIDING_LINE"
+		else
+			echo "$DIVIDING_LINE"
+			echo " No Appimage was created, please check the script"
+			echo "$DIVIDING_LINE"
+		fi
+
 		;;
 esac
