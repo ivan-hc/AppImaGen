@@ -29,27 +29,55 @@ _fit() {
 
 # Help message
 help_message="
-APPIMAGEN $APPIMAGEN_VERSION
+NAME: ${Green}APPIMAGEN\033[0m		VERSION: ${Green}$APPIMAGEN_VERSION\033[0m
 
-AN INTERACTIVE SCRIPT THAT GENERATES AN APPIMAGE FROM DEBIAN OR UBUNTU LTS
+SYNOPSIS:	${LightBlue}appimagen {ARGUMENT}\033[0m
+		${LightBlue}appimagen {OPTION}\033[0m
 
-USAGE:	
+DESCRIPTION: An interactive script that generates Debian and Ubuntu based AppImage packages on any distro.
 
-	appimagen [package1]
+$DIVIDING_LINE
+
+NORMAL BEHAVIOR:
+
+	${LightBlue}appimagen [package]\033[0m
 
 EXAMPLES:
 
-	appimagen chromium-browser
-	appimagen mpv
+	${LightBlue}appimagen chromium-browser\033[0m
+	${LightBlue}appimagen mpv\033[0m
+
+Description: \"AppImaGen\" is normally used without options. Only an argument is needed. Just add the name of the package you want to create an Appimage for.
+
+$DIVIDING_LINE
 
 OPTIONS:	
 
-	-h/--help	Shows this message
-	-v/--version	Shows the version of this script
- 
-SITE: https://github.com/ivan-hc/AppImaGen
- 
-THIS SCRIPT IS PART OF https://github.com/ivan-hc/AM
+${Gold}-h/--help\033[0m
+
+	${LightBlue}appimagen -h\033[0m
+
+Description: Shows this message.
+
+${Gold}-v/--version\033[0m
+
+	${LightBlue}appimagen -v\033[0m
+
+Description: Shows the version.
+
+$DIVIDING_LINE
+
+ SITE:
+
+ https://github.com/ivan-hc/AppImaGen
+
+ ${RED}MAIN PROJECTS\033[0m
+
+ https://github.com/ivan-hc/AM
+
+ https://portable-linux-apps.github.io
+
+$DIVIDING_LINE
 "
 
 ################################################################################################################################################################
@@ -157,7 +185,7 @@ _test_the_appimage() {
 
 case "$1" in
 	'-h'|'--help')
-		echo "$help_message" | _fit | less -Ir
+		echo -e "$help_message" | _fit | less -Ir
 		;;
 	'-v'|'--version')
 		echo "$APPIMAGEN_VERSION"
