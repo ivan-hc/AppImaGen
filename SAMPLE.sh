@@ -31,10 +31,11 @@ mkdir -p "tmp/$APPIMAGE_DIR" && cd tmp || exit 1
 ################################################################################################################################################################
 
 # This entire section is geared towards compiling via pkg2appimage, but you can replace everything with a different build type
+# This is the 1eceb30 build of pkg2appimage, converted to the new runtime that does not require libfuse2 and published in the "AM" repository
 
 _pkg2appimage() {
 	if ! command -v pkg2appimage 1>/dev/null; then
-		[ ! -f ./pkg2appimage ] && echo " Downloading pkg2appimage..." && curl -#Lo pkg2appimage "$(curl -Ls https://api.github.com/repos/AppImageCommunity/pkg2appimage/releases/latest | sed 's/[()",{} ]/\n/g' | grep -io "http.*$ARCH.*appimage$" | head -1)" && chmod a+x ./pkg2appimage
+		[ ! -f ./pkg2appimage ] && echo " Downloading pkg2appimage..." && curl -#Lo pkg2appimage https://github.com/ivan-hc/AM/raw/main/tools/pkg2appimage && chmod a+x ./pkg2appimage
 		./pkg2appimage "$@"
 	else
 		pkg2appimage "$@"
