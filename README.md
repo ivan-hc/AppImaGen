@@ -13,6 +13,12 @@ if you use "[AM](https://github.com/ivan-hc/AM)" package manager, you can instal
 am -i appimagetool pkg2appimage
 ```
 
+**NOTE**, `pkg2appimage` needs that the following commands are in $PATH:
+```
+dpkg dpkg-deb convert* wget grep sed cut file desktop-file-validate strings
+```
+...the `convert` command is in the `imagemagick` package of your distro.
+
 # Usage
 1. Download the "appimagen" script and made it executable
 ```
