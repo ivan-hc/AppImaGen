@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-APPIMAGEN_VERSION="3"
+APPIMAGEN_VERSION="3.0"
 
 # XDG Variables
 SCRIPTDIR="${SCRIPTDIR:-$(xdg-user-dir DESKTOP 2>/dev/null)}"
