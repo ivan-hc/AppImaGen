@@ -153,19 +153,9 @@ if ! test -f "$APPIMAGE_DIR"/*.desktop; then
 fi
 
 # ICON
-ICONNAME=$(cat "$APPIMAGE_DIR"/*desktop | grep "Icon=" | head -1 | cut -c 6-)
-cp -r "$APPIMAGE_DIR"/usr/share/icons/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/22x22/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/24x24/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/32x32/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/48x48/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/64x64/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/128x128/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/192x192/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/256x256/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/512x512/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/icons/hicolor/scalable/apps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
-cp -r "$APPIMAGE_DIR"/usr/share/pixmaps/*"$ICONNAME"* "$APPIMAGE_DIR"/ 2>/dev/null
+ICONNAME=$(cat "$APPIMAGE_DIR"/*desktop | grep "Icon=" | head -1 | cut -c 6- | sed 's/.png$//g; s/.svg$//g')
+ICON=$(find "$APPIMAGE_DIR" -type f -name *"$ICONNAME".png -o -name *"$ICONNAME".svg ! -type l | sort -V | tail -1)
+cp -r "$ICON" "$APPIMAGE_DIR"/ 2>/dev/null
 
 # CONVERT THE APPDIR TO AN APPIMAGE
 
