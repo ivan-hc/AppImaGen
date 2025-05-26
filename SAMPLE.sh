@@ -35,7 +35,7 @@ mkdir -p "tmp/$APPIMAGE_DIR" && cd tmp || exit 1
 
 _pkg2appimage() {
 	if ! command -v pkg2appimage 1>/dev/null; then
-		[ ! -f ./pkg2appimage ] && echo " Downloading pkg2appimage..." && curl -#Lo pkg2appimage https://github.com/ivan-hc/AM/raw/main/tools/pkg2appimage && chmod a+x ./pkg2appimage
+		[ ! -f ./pkg2appimage ] && echo " Downloading pkg2appimage..." && curl -#Lo pkg2appimage https://github.com/ivan-hc/AppImaGen/releases/download/utilities/pkg2appimage && chmod a+x ./pkg2appimage
 		./pkg2appimage "$@"
 	else
 		pkg2appimage "$@"
