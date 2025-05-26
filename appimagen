@@ -52,86 +52,144 @@ SITE: https://github.com/ivan-hc/AppImaGen
 THIS SCRIPT IS PART OF https://github.com/ivan-hc/AM
 "
 
+################################################################################################################################################################
+#				BUILDER
+################################################################################################################################################################
+
+# Download the script
+_download_the_script() {
+	_online_check
+	curl -Ls https://raw.githubusercontent.com/ivan-hc/AppImaGen/main/SAMPLE.sh > "$APP"-builder.sh
+	sed -i "s/APP=SAMPLE/APP=\"$APP\"/g" "$APP"-builder.sh
+}
+
+# Choose the base distro
+_choose_the_base_distro() {
+	echo "$DIVIDING_LINE"
+	read -r -ep " Choose between Debian (default) or Ubuntu (type 2): " response
+	if echo "$response" | grep -q "^2"; then
+		base_distro="ubuntu"
+		sed -i 's/distro="debian"/distro="ubuntu"/g' "$APP"-builder.sh
+	else
+		base_distro="debian"
+	fi
+}
+
+# Codenames and PPAs
+_codenames() {
+	echo "$DIVIDING_LINE"
+	if [ "$base_distro" = "debian" ]; then
+		read -r -ep " Add a codename (stable, testing, oldstable...) or leave blank: " codename
+		[ -n "$codename" ] && sed -i "s/oldstable/$codename/g" "$APP"-builder.sh
+	elif [ "$base_distro" = "ubuntu" ]; then
+		read -r -ep " Add a codename (focal, jammy, noble...) or leave blank: " codename
+		[ -n "$codename" ] && sed -i "s/oldstable/$codename/g" "$APP"-builder.sh
+	fi
+}
+
+# Add packages
+_add_packages() {
+	echo "$DIVIDING_LINE"
+	read -r -ep " Add packages (pkg1 pkg2 pkg3...) or leave blank:$(printf "\n\n ")" pkgs
+	if [ -n "$pkgs" ]; then
+		sed -i "s/packages=\"/packages=\"$pkgs /g" "$APP"-builder.sh
+	fi
+}
+
+# Codenames and PPAs
+_ppas() {
+	if grep -q '^distro="ubuntu"' ./"$APP"-builder.sh; then
+		echo "$DIVIDING_LINE"
+		echo " Do you want to add PPAs?"
+		read -r -ep " Add one or more like this 'name/repository' or leave blank:$(printf "\n\n ")" ppas
+		if [ -n "$ppas" ]; then
+		sed -i "s#ppas=\"#ppas=\"$ppas #g" "$APP"-builder.sh
+		fi
+	fi
+}
+
+# Choose if the AppImage should use system libraries
+_let_the_appimage_use_system_libraries() {
+	if grep -q "^#export LD_LIBRARY_PATH" ./"$APP"-builder.sh; then
+		echo "$DIVIDING_LINE"
+		read -r -ep ' Do you wish to use libraries from the host system (y,N)?' syslibraries
+		if echo "$syslibraries" | grep -qi "^y"; then
+			sed -i "s/^#export/export/g" "$APP"-builder.sh
+		fi
+	fi
+}
+
+# Run the script
+_run_the_script() {
+	echo "$DIVIDING_LINE"
+	read -r -ep ' Do you want to run the script (y,N)?' appimagenrun
+	if echo "$appimagenrun" | grep -qi "^y"; then
+		mkdir -p AppImaGen-builds/"$APP" && cp -r "$APP"-builder.sh AppImaGen-builds/"$APP"/ || exit 1
+		cd AppImaGen-builds/"$APP" || exit 1
+		echo "$DIVIDING_LINE"
+		echo " LET'S GO!"
+		echo "$DIVIDING_LINE"
+		chmod a+x ./"$APP"-builder.sh && ./"$APP"-builder.sh
+	fi
+}
+
+# Test the AppImage
+_test_the_appimage() {
+	if test -f ./*AppImage; then
+		echo "$DIVIDING_LINE"
+		read -r -ep ' Do you want to run the Appimage (y,N)?' appimagerun
+		if echo "$appimagerun" | grep -qi "^y"; then
+			./*AppImage --appimage-portable-config 2>/dev/null
+			./*AppImage --appimage-portable-home 2>/dev/null
+			./*AppImage
+		fi
+		echo "$DIVIDING_LINE"
+	else
+		echo "$DIVIDING_LINE"
+		echo " No Appimage was created, please check the script"
+		echo "$DIVIDING_LINE"
+	fi
+}
+
+################################################################################################################################################################
+#				USAGE
+################################################################################################################################################################
+
 case "$1" in
 	'-h'|'--help')
 		echo "$help_message" | _fit | less -Ir
 		;;
-	-v|--version)
+	'-v'|'--version')
 		echo "$APPIMAGEN_VERSION"
 		;;
 	*)
 		APP="$1"
-		# Download the script
-		_online_check
+
 		cd "$SCRIPTDIR" || exit 1
-		curl -Ls https://raw.githubusercontent.com/ivan-hc/AppImaGen/main/SAMPLE.sh > "$APP"-builder.sh
-		sed -i "s/APP=SAMPLE/APP=\"$APP\"/g" "$APP"-builder.sh
 
-		# Add packages
-		echo "$DIVIDING_LINE"
-		read -r -ep " Add packages (pkg1 pkg2 pkg3...) or leave blank:$(printf "\n\n ")" pkgs
-		if [ -n "$pkgs" ]; then
-			sed -i "s/packages=\"/packages=\"$pkgs /g" "$APP"-builder.sh
-		fi
-
-		# Choose the base distro
-		echo "$DIVIDING_LINE"
-		read -r -ep " Choose between Debian (default) or Ubuntu (type 2): " response
-		if echo "$response" | grep -q "^2"; then
-			base_distro="ubuntu"
-			sed -i 's/distro="debian"/distro="ubuntu"/g' "$APP"-builder.sh
-		else
-			base_distro="debian"
-		fi
-
-		# Codenames and PPAs
-		echo "$DIVIDING_LINE"
-		if [ "$base_distro" = "debian" ]; then
-			read -r -ep " Add a codename (stable, testing, oldstable...) or leave blank: " codename
-			[ -n "$codename" ] && sed -i "s/oldstable/$codename/g" "$APP"-builder.sh
-		elif [ "$base_distro" = "ubuntu" ]; then
-			read -r -ep " Add a codename (focal, jammy, noble...) or leave blank: " codename
-			[ -n "$codename" ] && sed -i "s/oldstable/$codename/g" "$APP"-builder.sh
+		if [ -f ./"$APP"-builder.sh ]; then
 			echo "$DIVIDING_LINE"
-			echo " Do you want to add PPAs?"
-			read -r -ep " Add one or more like this 'name/repository' or leave blank:$(printf "\n\n ")" ppas
-			if [ -n "$ppas" ]; then
-				sed -i "s#ppas=\"#ppas=\"$ppas #g" "$APP"-builder.sh
+			echo " A script for \"$APP\" already exists!"
+			read -r -ep " Leave blank to update it or press 2 to overwrite it: " exists
+			if echo "$exists" | grep -q "^2"; then
+				_download_the_script
+				rm -Rf AppImaGen-builds/"$APP"/*
+			else
+				update_builder="1"
 			fi
-		fi
-
-		# Choose if the AppImage should use system libraries
-		echo "$DIVIDING_LINE"
-		read -r -ep ' Do you wish to include system libraries (y,N)?' syslibraries
-		if echo "$syslibraries" | grep -qi "^y"; then
-			sed -i "s/^#export/export/g" "$APP"-builder.sh
-		fi
-
-		# Run the script
-		echo "$DIVIDING_LINE"
-		read -r -ep ' Do you want to run the script (y,N)?' appimagenrun
-		if echo "$appimagenrun" | grep -qi "^y"; then
-			mkdir -p AppImaGen-builds/"$APP" && cp -r "$APP"-builder.sh AppImaGen-builds/"$APP"/ || exit 1
-			cd AppImaGen-builds/"$APP" || exit 1
-			echo "$DIVIDING_LINE"
-			echo " LET'S GO!"
-			echo "$DIVIDING_LINE"
-			chmod a+x ./"$APP"-builder.sh && ./"$APP"-builder.sh
-		fi
-
-		# Test the AppImage
-		if test -f ./*AppImage; then
-			echo "$DIVIDING_LINE"
-			read -r -ep ' Do you want to run the Appimage (y,N)?' appimagerun
-			if echo "$appimagerun" | grep -qi "^y"; then
-				./*AppImage
-			fi
-			echo "$DIVIDING_LINE"
 		else
-			echo "$DIVIDING_LINE"
-			echo " No Appimage was created, please check the script"
-			echo "$DIVIDING_LINE"
+			_download_the_script
 		fi
 
+		if [ -z "$update_builder" ]; then
+			_choose_the_base_distro
+			_codenames
+		fi
+
+		_add_packages
+		_ppas
+		_let_the_appimage_use_system_libraries
+		_run_the_script
+		_test_the_appimage
 		;;
 esac
