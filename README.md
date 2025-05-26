@@ -1,30 +1,53 @@
 # AppImaGen
-A script that generates a custom AppImage from any Debian or Ubuntu release, with PPA support for the latter
+Generates Debian and Ubuntu based AppImage packages on any distro
 
 https://github.com/user-attachments/assets/d9f754ed-d163-46ee-a3b1-0034131065ba
 
+# Dependencies
+The scripts already contain functions to download the following tools while building
+- [appimagetool](https://github.com/AppImage/appimagetool)
+- [pkg2appimage](https://github.com/AppImageCommunity/pkg2appimage)
+
+if you use "[AM](https://github.com/ivan-hc/AM)" package manager, you can install them using the following command
+```
+am -i appimagetool pkg2appimage
+```
+
 # Usage
-1. download the "appimagen" script and made it executable
+1. Download the "appimagen" script and made it executable
 ```
 wget -q https://raw.githubusercontent.com/ivan-hc/AppImaGen/main/appimagen && chmod a+x ./appimagen
 ```
-if you use "AM"/"AppMan" package manager, you can install it using one of the following commands
+if you use "[AM](https://github.com/ivan-hc/AM)" package manager, you can install them using the following command
 ```
 am -i appimagen
-appman -i appimagen
 ```
-See more at https://github.com/ivan-hc/AM
 
-2. use the following syntax to create a build script for an Ubuntu or debian based AppImage
+2. Use the following syntax to create a build script for an Ubuntu or debian based AppImage
 ```
-./appimagen appname
+appimagen appname
 ```
 where "appname" is the name of the package in APT. For example
 ```
-./appimagen audacity
+appimagen audacity
 ```
+The script will be saved to the Desktop. If there is no XDG directory for the Desktop, it will be saved to $HOME.
 
-3. follow the on screen instructions
+3. Follow the on screen instructions:
+   - by default, the script uses Debian as the base, but selecting 2 will allow you to set an Ubuntu base
+   - enter the "codename" (in lowercase) of the Debian/Ubuntu version you want to use as the base
+   - enter the additional packages you want to force into the build, or leave nothing at all
+   - if you selected Ubuntu, you can add one or more additional PPAs or leave none at all
+   - choose whether to allow the AppImage to see the host libraries (recommended for personal use only)
+
+At the end, choose whether to run the script. If the build was successful, you can select "y" to launch the newly created AppImage directly from the AppImaGen CLI.
+
+# Repeat
+If the build was not successful, you can simply repeat the command
+```
+appimagen appname
+```
+and then, add the packages and/or PPAs you need. You don't have to download everything again!
 
 ------------------------------------------------------------------------
 # My other projects
