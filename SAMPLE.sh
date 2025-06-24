@@ -152,6 +152,10 @@ if ! test -f "$APPIMAGE_DIR"/*.desktop; then
 	cp "./$APP/$APP.AppDir/usr/share/applications/*$(find . -type f -name "*$APP*.desktop" | head -1 | sed 's:.*/::')*" "$APPIMAGE_DIR"/ 2>/dev/null
 fi
 
+if ! grep -q "^Categories=" "$APPIMAGE_DIR"/*.desktop; then
+	sed -i 's/^Exec=/Categories=Utility;\nExec=/g' "$APPIMAGE_DIR"/*.desktop
+fi
+
 # ICON
 ICONNAME=$(cat "$APPIMAGE_DIR"/*desktop | grep "Icon=" | head -1 | cut -c 6- | sed 's/.png$//g; s/.svg$//g')
 ICON=$(find "$APPIMAGE_DIR" -type f -name *"$ICONNAME".png -o -name *"$ICONNAME".svg ! -type l | sort -V | tail -1)
