@@ -159,7 +159,11 @@ fi
 # ICON
 ICONNAME=$(cat "$APPIMAGE_DIR"/*desktop | grep "Icon=" | head -1 | cut -c 6- | sed 's/.png$//g; s/.svg$//g')
 ICON=$(find "$APPIMAGE_DIR" -type f -name *"$ICONNAME".png -o -name *"$ICONNAME".svg ! -type l | sort -V | tail -1)
-cp -r "$ICON" "$APPIMAGE_DIR"/ 2>/dev/null
+if [ -n "$ICON" ]; then
+	cp -r "$ICON" "$APPIMAGE_DIR"/ 2>/dev/null
+else
+	touch "$APPIMAGE_DIR"/"$ICONNAME".png
+fi
 
 # CONVERT THE APPDIR TO AN APPIMAGE
 
