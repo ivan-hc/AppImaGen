@@ -112,6 +112,11 @@ HERE="$(dirname "$(readlink -f "${0}")")"
 
 export PATH="${HERE}"/usr/bin/:"${HERE}"/usr/sbin/:"${HERE}"/usr/games/:"${HERE}"/bin/:"${HERE}"/sbin/:"${PATH}"
 
+lib_dirs=$(find "$HERE"/usr/lib -type d | sed 's#usr/lib/#DEL\n#g' | grep -v DEL$)
+for d in $lib_dirs; do
+	export LD_LIBRARY_PATH="${HERE}"/usr/lib/"$d"/:"${LD_LIBRARY_PATH}"
+done
+
 export LD_LIBRARY_PATH="${HERE}"/usr/lib/:"${HERE}"/usr/lib/x86_64-linux-gnu/:"${HERE}"/lib/:"${HERE}"/lib64/:"${HERE}"/lib/x86_64-linux-gnu/:"${LD_LIBRARY_PATH}"
 #export LD_LIBRARY_PATH=/lib/:/lib64/:/lib/x86_64-linux-gnu/:/usr/lib/:"${LD_LIBRARY_PATH}" # Uncomment to use system libraries
 
